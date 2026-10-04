@@ -18,7 +18,7 @@ Debug/
 Release/
 
 # Dependency Frameworks / Dynamic Libraries
-# *.dll
+*.dll
 # *.dylib
 # *.so
 
