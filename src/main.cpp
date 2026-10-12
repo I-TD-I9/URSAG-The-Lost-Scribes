@@ -1,5 +1,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <random>
 
 // Window size
 const int window_width {1280};
@@ -17,7 +18,21 @@ enum Side {
     SIDE_ENEMY
 };
 
-// Convert a tile on one side's grid into a postion on the whole board
+// A unit on the board
+struct Unit {
+    Side side {SIDE_HERO};      //Which grid it stands on
+    int row {0};
+    int column {0};
+
+    int hp {0};
+    int max_hp {0};
+    int ap {0};
+    int max_ap {0};
+    int sp {0};
+    int max_sp {0};
+};
+
+// Convert a tile on one side's grid into a position on the whole board
 SDL_FPoint grid_to_world (Side side, int row, int column) {
     SDL_FPoint world;
     world.y = row;
@@ -43,6 +58,15 @@ SDL_FPoint world_to_screen (float world_x, float world_y) {
     screen.y = board_top + world_y * tile_size;
 
     return screen;
+}
+
+// Random whole number from min to max (both included)
+int random_int (int min, int max) {
+    static std::random_device device;
+    static std::mt19937 gen(device());
+    std::uniform_int_distribution<int> distribution(min, max);
+
+    return distribution(gen);
 }
 
 // Draws one tile as a filled square
@@ -80,6 +104,33 @@ void draw_board (SDL_Renderer *renderer) {
     }
 }
 
+// Draws a unit inside a tile
+void draw_unit (SDL_Renderer *renderer, Unit unit) {
+    SDL_FPoint world = grid_to_world(unit.side, unit.row, unit.column);
+
+    // Gap indide the tile square
+    const float inset = 0.2f;
+
+    SDL_FPoint top_left = world_to_screen(world.x + inset, world.y + inset);
+    SDL_FPoint bottom_right = world_to_screen(world.x + 1.0f - inset, world.y + 1.0f - inset);
+
+    SDL_FRect rect;
+    rect.x = top_left.x;
+    rect.y = top_left.y;
+    rect.w = bottom_right.x - top_left.x;
+    rect.h = bottom_right.y - top_left.y;
+
+    // Heros are blue, and enmies are orange
+    if (unit.side == SIDE_HERO) {
+        SDL_SetRenderDrawColor(renderer, 80, 160, 255, 255);
+    }
+    else {
+        SDL_SetRenderDrawColor(renderer, 240, 150, 60, 255);
+    }
+
+    SDL_RenderFillRect(renderer, &rect);
+}
+
 int main(int argc, char* argv[]) {
     
     SDL_Window *window = NULL;
@@ -110,6 +161,30 @@ int main(int argc, char* argv[]) {
     const Uint64 TARGET_FPS = 60;
     const Uint64 NS_PER_FRAME = 1000000000 / TARGET_FPS;
 
+     // Hero unit
+    Unit hero;
+    hero.side = SIDE_HERO;
+    hero.row = random_int(0, grid_rows - 1);
+    hero.column = random_int(0, grid_columns  - 1);
+    hero.max_hp = 400;
+    hero.hp = hero.max_hp;
+    hero.max_ap = 150;
+    hero.ap = hero.max_ap;
+    hero.max_sp = 200;
+    hero.sp = hero.max_sp;
+
+    // Enemy unit 
+    Unit enemy;
+    enemy.side = SIDE_ENEMY;
+    enemy.row = random_int(0, grid_rows - 1);
+    enemy.column = random_int(0, grid_columns  - 1);
+    enemy.max_hp = 250;
+    enemy.hp = enemy.max_hp;
+    enemy.max_ap = 150;
+    enemy.ap = enemy.max_ap;
+    enemy.max_sp = 120;
+    enemy.sp = enemy.max_sp;
+
      // Main Game Loop
     while (!done) {
         SDL_Event event;
@@ -135,6 +210,9 @@ int main(int argc, char* argv[]) {
         SDL_RenderClear(renderer);
 
         draw_board(renderer);
+
+        draw_unit(renderer, hero);
+        draw_unit(renderer, enemy);
 
         SDL_RenderPresent(renderer);
 
