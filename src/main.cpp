@@ -1,6 +1,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <random>
+#include <vector>
 
 // Window size
 const int window_width {1280};
@@ -11,6 +12,8 @@ const int grid_columns {6};
 const int grid_rows {6};
 const float tile_size {64.0f};
 const float center_gap {0.5f};
+const int spawn_min_column {2};  // Units always spawn in columns c2 to c5
+
 
 // Which grid a tile belongs to
 enum Side {
@@ -69,6 +72,38 @@ int random_int (int min, int max) {
     return distribution(gen);
 }
 
+// Checks if unit is occupying a tile
+bool is_tile_taken (const std::vector<Unit> &units, Side side, int row, int column) {
+    for (const Unit &unit : units) {
+        if (unit.side == side && unit.row == row && unit.column == column) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Creates a unit on random free tile
+void spawn_unit (std::vector<Unit> &units, Side side, int max_hp, int max_ap, int max_sp) {
+    Unit unit;
+    unit.side = side;
+
+    // Goes through tiles until it finds a free one
+    do {
+        unit.row = random_int(0, grid_rows - 1);
+        unit.column = random_int(spawn_min_column, grid_columns - 1);
+    } while (is_tile_taken(units, side, unit.row, unit.column));
+
+    unit.max_hp = max_hp;
+    unit.hp = max_hp;
+    unit.max_ap = max_ap;
+    unit.ap = max_ap;
+    unit.max_sp = max_sp;
+    unit.sp = max_sp;
+
+    units.push_back(unit);
+}
+
 // Draws one tile as a filled square
 void draw_tile (SDL_Renderer *renderer, Side side, int row, int column) {
     SDL_FPoint world = grid_to_world (side, row, column);
@@ -105,10 +140,10 @@ void draw_board (SDL_Renderer *renderer) {
 }
 
 // Draws a unit inside a tile
-void draw_unit (SDL_Renderer *renderer, Unit unit) {
+void draw_unit (SDL_Renderer *renderer, const Unit &unit) {
     SDL_FPoint world = grid_to_world(unit.side, unit.row, unit.column);
 
-    // Gap indide the tile square
+    // Leaves a gap inside the tile square
     const float inset = 0.2f;
 
     SDL_FPoint top_left = world_to_screen(world.x + inset, world.y + inset);
@@ -120,7 +155,7 @@ void draw_unit (SDL_Renderer *renderer, Unit unit) {
     rect.w = bottom_right.x - top_left.x;
     rect.h = bottom_right.y - top_left.y;
 
-    // Heros are blue, and enmies are orange
+    // Heroes are blue, and enemies are orange
     if (unit.side == SIDE_HERO) {
         SDL_SetRenderDrawColor(renderer, 80, 160, 255, 255);
     }
@@ -161,31 +196,13 @@ int main(int argc, char* argv[]) {
     const Uint64 TARGET_FPS = 60;
     const Uint64 NS_PER_FRAME = 1000000000 / TARGET_FPS;
 
-     // Hero unit
-    Unit hero;
-    hero.side = SIDE_HERO;
-    hero.row = random_int(0, grid_rows - 1);
-    hero.column = random_int(0, grid_columns  - 1);
-    hero.max_hp = 400;
-    hero.hp = hero.max_hp;
-    hero.max_ap = 150;
-    hero.ap = hero.max_ap;
-    hero.max_sp = 200;
-    hero.sp = hero.max_sp;
+    // Spawns units in the battle starting with hero
+    std::vector<Unit> units;
+    spawn_unit(units, SIDE_HERO, 400, 150, 200);     // Hero
+    spawn_unit(units, SIDE_ENEMY, 250, 150, 120);    // Enemy 1
+    spawn_unit(units, SIDE_ENEMY, 150, 150, 120);    // Enemy 2
 
-    // Enemy unit 
-    Unit enemy;
-    enemy.side = SIDE_ENEMY;
-    enemy.row = random_int(0, grid_rows - 1);
-    enemy.column = random_int(0, grid_columns  - 1);
-    enemy.max_hp = 250;
-    enemy.hp = enemy.max_hp;
-    enemy.max_ap = 150;
-    enemy.ap = enemy.max_ap;
-    enemy.max_sp = 120;
-    enemy.sp = enemy.max_sp;
-
-     // Main Game Loop
+    // Main Game Loop
     while (!done) {
         SDL_Event event;
 
@@ -211,8 +228,9 @@ int main(int argc, char* argv[]) {
 
         draw_board(renderer);
 
-        draw_unit(renderer, hero);
-        draw_unit(renderer, enemy);
+        for (const Unit &unit : units) {
+            draw_unit(renderer, unit);
+        }
 
         SDL_RenderPresent(renderer);
 

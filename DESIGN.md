@@ -24,9 +24,9 @@ Two 6x6 grids face each other across a center line. Rows line up across both gri
      c5  c4  c3  c2  c1  c0          c0  c1  c2  c3  c4  c5
 r0    .   .   .   .   .   .     |     .   .   .   .   .   .
 r1    .   .   .   .   .   .     |     .   .   .  E1   .   .
-r2    .   .   .   .  H1   .     |     .   .   .   .   .   .
+r2    .   .   .  H1   .   .     |     .   .   .   .   .   .
 r3    .   .   .   .   .   .     |     .   .   .   .   .   .
-r4    .   .   .   .   .   .     |    E2   .   .   .   .   .
+r4    .   .   .   .   .   .     |     .   .   .   .  E2   .
 r5    .   .   .   .   .   .     |     .   .   .   .   .   .
                                 ^ center line
 ```
@@ -61,9 +61,17 @@ From r2 c3, the same attack only reaches enemy c0 in row 2.
 
 Healing spells target the caster's own grid, so their range is just the rows plus columns between the two tiles.
 
+### Starting positions
+
+Every battle starts with units on random tiles, so no two battles open the same way.
+- Units only spawn in their grid's back four columns (c2 to c5).
+- No two units can share a tile.
+
+Keeping the two front columns empty means the closest possible start is 5 apart, one more than an attack's range. No one can attack before moving.
+
 ## Stats
 
-| Stat | Hero | Bruiser | Sniper |
+| Stat | Hero | Enemy 1 | Enemy 2 |
 |------|------|---------|--------|
 | HP   | 400  | 250     | 150    |
 | AP   | 150  | 150     | 150    |
@@ -143,14 +151,14 @@ Spells come in four tiers. The more tiles a spell covers, the more SP it costs:
 | Spell     | Speed           | SP  | Range | Tiles    | Effect      | Worst-case dodge cost | Known by |
 |-----------|-----------------|-----|-------|----------|-------------|-----------------------|----------|
 | Mend      | Instant         | 20  | 3     | 1        | Heals 80 HP | -                     | Hero |
-| Pillar    | Instant         | 20  | 6     | 3        | 35 damage   | -                     | Hero, Sniper |
-| Veil      | Wind-up, hidden | 20  | 8     | 4        | 20 damage   | -                     | Hero, Sniper |
-| Sweep     | Wind-up         | 40  | 3     | 6        | 50 damage   | 50 AP                 | Hero, Bruiser |
-| Cross     | Wind-up         | 40  | 7     | 5        | 50 damage   | 100 AP                | Hero, Sniper |
-| Quake     | Wind-up         | 60  | 4     | 18       | 45 damage   | 100 AP                | Hero, Bruiser |
+| Pillar    | Instant         | 20  | 6     | 3        | 35 damage   | -                     | Hero, Enemy 2 |
+| Veil      | Wind-up, hidden | 20  | 8     | 4        | 20 damage   | -                     | Hero, Enemy 2 |
+| Sweep     | Wind-up         | 40  | 3     | 6        | 50 damage   | 50 AP                 | Hero, Enemy 1 |
+| Cross     | Wind-up         | 40  | 7     | 5        | 50 damage   | 100 AP                | Hero, Enemy 2 |
+| Quake     | Wind-up         | 60  | 4     | 18       | 45 damage   | 100 AP                | Hero, Enemy 1 |
 | Cataclysm | Wind-up         | 100 | 4     | up to 30 | 40 damage   | Can't be dodged       | Hero |
 
-The Bruiser's spells are short range, so it has to come forward to use them. The Sniper's are long range, so it can stay back. Cataclysm is the strongest spell, but its short range means the hero has to step forward to cast it.
+Enemy 1's spells are short range, so it has to come forward to use them. Enemy 2's are long range, so it can stay back. Cataclysm is the strongest spell, but its short range means the hero has to step forward to cast it.
 
 ```
 Pillar      Cross       Veil
