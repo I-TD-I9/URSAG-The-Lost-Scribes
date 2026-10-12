@@ -2,6 +2,7 @@
 #include <SDL3/SDL_main.h>
 #include <random>
 #include <vector>
+#include <string>
 
 // Window size
 const int window_width {1280};
@@ -33,6 +34,21 @@ struct Unit {
     int max_ap {0};
     int sp {0};
     int max_sp {0};
+};
+
+// Option for the battle menu
+enum MenuOption {
+    MENU_ATTACK,
+    MENU_MOVE,
+    MENU_SPELLS,
+    MENU_ITEMS,
+    MENU_FLEE,
+    MENU_OPTION_COUNT // Counts how many options there are
+};
+
+// Text shown for each menu option
+const std::string menu_labels[MENU_OPTION_COUNT] = {
+    "Attack", "Move", "Spells", "Items", "Flee"
 };
 
 // Convert a tile on one side's grid into a position on the whole board
@@ -166,6 +182,76 @@ void draw_unit (SDL_Renderer *renderer, const Unit &unit) {
     SDL_RenderFillRect(renderer, &rect);
 }
 
+// Draws text at twice its normal size (SDL’s built-in font is only 8×8 pixels)
+void draw_text (SDL_Renderer *renderer, float x, float y, const std::string &text) {
+    const float scale = 2.0f;
+
+    SDL_SetRenderScale(renderer, scale, scale);
+    SDL_RenderDebugText(renderer, x / scale, y / scale, text.c_str());
+    SDL_SetRenderScale(renderer, 1.0f, 1.0f);
+}
+
+// Draws a box with light border
+void draw_panel (SDL_Renderer *renderer, float x, float y, float w, float h) {
+    SDL_FRect panel {x, y, w, h};
+
+    SDL_SetRenderDrawColor(renderer, 30, 30, 45, 255);
+    SDL_RenderFillRect(renderer, &panel);
+
+    SDL_SetRenderDrawColor(renderer, 110, 110, 150, 255);
+    SDL_RenderRect(renderer, &panel);
+}
+
+//Draws battle menu
+void draw_menu (SDL_Renderer *renderer, int selected_option) {
+    const float x = 240.0f;
+    const float y = 476.0f;
+    const float line_height = 30.0f;
+    const float panel_width = 220.0f;
+    const int option_count = MENU_OPTION_COUNT;
+    const float panel_height = 26.0f + option_count * line_height; // So it expands if more option are added
+
+    draw_panel (renderer, x, y, panel_width, panel_height);
+
+    for (int i = 0; i < MENU_OPTION_COUNT; i++) {
+        float line_y = y + 16.0f + i * line_height;
+
+        if (i == selected_option) {
+            // Highlight bar behind selected option
+            SDL_FRect highlight {x + 8.0f, line_y - 6.0f, panel_width - 16.0f, 28.0f};
+            SDL_SetRenderDrawColor(renderer, 70, 80, 140, 255);
+            SDL_RenderFillRect(renderer, &highlight);
+
+            SDL_SetRenderDrawColor(renderer, 255, 220, 100, 255);
+            draw_text(renderer, x + 16.0f, line_y, "> " + menu_labels[i]);
+        }
+        else {
+            SDL_SetRenderDrawColor(renderer, 200, 200, 210, 255);
+            draw_text(renderer, x + 16.0f, line_y, "  " + menu_labels[i]);
+        }
+    }
+}
+
+// Draws hero stats on the battle menu
+void draw_hero_stats (SDL_Renderer *renderer, const Unit &hero) {
+    const float x = 480.0f;
+    const float y = 476.0f;
+    const float line_height = 30.0f;
+
+    draw_panel(renderer, x, y, 300.0f, 136.0f);
+
+    SDL_SetRenderDrawColor(renderer, 80, 160, 255, 255);
+    draw_text(renderer, x + 16.0f, y + 16.0f, "HERO");
+
+    SDL_SetRenderDrawColor(renderer, 200, 200, 210, 255);
+    draw_text(renderer, x + 16.0f, y + 16.0f + line_height,
+              "HP " + std::to_string(hero.hp) + " / " + std::to_string(hero.max_hp));
+    draw_text(renderer, x + 16.0f, y + 16.0f + line_height * 2,
+              "AP " + std::to_string(hero.ap) + " / " + std::to_string(hero.max_ap));
+    draw_text(renderer, x + 16.0f, y + 16.0f + line_height * 3,
+              "SP " + std::to_string(hero.sp) + " / " + std::to_string(hero.max_sp));
+}
+
 int main(int argc, char* argv[]) {
     
     SDL_Window *window = NULL;
@@ -202,6 +288,10 @@ int main(int argc, char* argv[]) {
     spawn_unit(units, SIDE_ENEMY, 250, 150, 120);    // Enemy 1
     spawn_unit(units, SIDE_ENEMY, 150, 150, 120);    // Enemy 2
 
+    
+    // Which battle menu option is highlighted by default
+    int selected_option {MENU_ATTACK};
+
     // Main Game Loop
     while (!done) {
         SDL_Event event;
@@ -215,8 +305,25 @@ int main(int argc, char* argv[]) {
                 done = true;
             }
             else if (event.type == SDL_EVENT_KEY_DOWN) {
-                if (event.key.key == SDLK_ESCAPE) {
-                    done = true;
+                // Move the selection up, wrapping around to the bottom
+                if (event.key.key == SDLK_UP) {
+                    selected_option = selected_option - 1;
+                    if (selected_option < 0) {
+                        selected_option = MENU_OPTION_COUNT - 1;
+                    }
+                }
+                // Move the selection down, wrapping around to the top
+                else if (event.key.key == SDLK_DOWN) {
+                    selected_option = selected_option + 1;
+                    if (selected_option >= MENU_OPTION_COUNT) {
+                        selected_option = 0;
+                    }
+                }
+                // Choose the highlighted option
+                else if (event.key.key == SDLK_RETURN) {
+                    if (selected_option == MENU_FLEE) {
+                        done = true;
+                    }
                 }
             }
         }
@@ -231,6 +338,9 @@ int main(int argc, char* argv[]) {
         for (const Unit &unit : units) {
             draw_unit(renderer, unit);
         }
+  
+        draw_menu(renderer, selected_option);
+        draw_hero_stats(renderer, units[0]);
 
         SDL_RenderPresent(renderer);
 
