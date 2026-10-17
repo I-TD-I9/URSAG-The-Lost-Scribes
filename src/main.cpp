@@ -51,6 +51,14 @@ const std::string menu_labels[MENU_OPTION_COUNT] = {
     "Attack", "Move", "Spells", "Items", "Flee"
 };
 
+
+// Everything about the battle that's going on
+struct Battle {
+    std::vector<Unit> units;                // every unit
+    int selected_option {MENU_ATTACK};      // highlighted battle menu option
+    bool finished {false};                  // true once the battle is over
+};
+
 // Convert a tile on one side's grid into a position on the whole board
 SDL_FPoint grid_to_world (Side side, int row, int column) {
     SDL_FPoint world;
@@ -252,6 +260,54 @@ void draw_hero_stats (SDL_Renderer *renderer, const Unit &hero) {
               "SP " + std::to_string(hero.sp) + " / " + std::to_string(hero.max_sp));
 }
 
+
+// Sets up a new battle with the hero and two enemies on random tiles
+Battle start_battle () {
+    Battle battle;
+
+    spawn_unit(battle.units, SIDE_HERO, 400, 150, 200);     // Hero
+    spawn_unit(battle.units, SIDE_ENEMY, 250, 150, 120);    // Enemy 1
+    spawn_unit(battle.units, SIDE_ENEMY, 150, 150, 120);    // Enemy 2
+
+    return battle;
+}
+
+// Reacts to one key press during the battle
+void handle_key (Battle &battle, SDL_Keycode key) {
+    // Move the selection up, wrapping around to the bottom
+    if (key == SDLK_UP) {
+        battle.selected_option = battle.selected_option - 1;
+        if (battle.selected_option < 0) {
+            battle.selected_option = MENU_OPTION_COUNT - 1;
+        }
+    }
+    // Move the selection down, wrapping around to the top
+    else if (key == SDLK_DOWN) {
+        battle.selected_option = battle.selected_option + 1;
+        if (battle.selected_option >= MENU_OPTION_COUNT) {
+            battle.selected_option = 0;
+        }
+    }
+    // Choose the highlighted option
+    else if (key == SDLK_RETURN) {
+        if (battle.selected_option == MENU_FLEE) {
+            battle.finished = true;
+        }
+    }
+}
+
+// Draws the board, the units and the HUD
+void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
+    draw_board(renderer);
+
+    for (const Unit &unit : battle.units) {
+        draw_unit(renderer, unit);
+    }
+
+    draw_menu(renderer, battle.selected_option);
+    draw_hero_stats(renderer, battle.units[0]);
+}
+
 int main(int argc, char* argv[]) {
     
     SDL_Window *window = NULL;
@@ -282,15 +338,9 @@ int main(int argc, char* argv[]) {
     const Uint64 TARGET_FPS = 60;
     const Uint64 NS_PER_FRAME = 1000000000 / TARGET_FPS;
 
-    // Spawns units in the battle starting with hero
-    std::vector<Unit> units;
-    spawn_unit(units, SIDE_HERO, 400, 150, 200);     // Hero
-    spawn_unit(units, SIDE_ENEMY, 250, 150, 120);    // Enemy 1
-    spawn_unit(units, SIDE_ENEMY, 150, 150, 120);    // Enemy 2
+        // Start a new battle
+    Battle battle = start_battle();
 
-    
-    // Which battle menu option is highlighted by default
-    int selected_option {MENU_ATTACK};
 
     // Main Game Loop
     while (!done) {
@@ -305,27 +355,13 @@ int main(int argc, char* argv[]) {
                 done = true;
             }
             else if (event.type == SDL_EVENT_KEY_DOWN) {
-                // Move the selection up, wrapping around to the bottom
-                if (event.key.key == SDLK_UP) {
-                    selected_option = selected_option - 1;
-                    if (selected_option < 0) {
-                        selected_option = MENU_OPTION_COUNT - 1;
-                    }
-                }
-                // Move the selection down, wrapping around to the top
-                else if (event.key.key == SDLK_DOWN) {
-                    selected_option = selected_option + 1;
-                    if (selected_option >= MENU_OPTION_COUNT) {
-                        selected_option = 0;
-                    }
-                }
-                // Choose the highlighted option
-                else if (event.key.key == SDLK_RETURN) {
-                    if (selected_option == MENU_FLEE) {
-                        done = true;
-                    }
-                }
+                handle_key(battle, event.key.key);
             }
+        }
+
+        // Stop when the battle is over
+        if (battle.finished) {
+            done = true;
         }
 
         // ------------------ GAME RENDERING ------------------
@@ -333,14 +369,7 @@ int main(int argc, char* argv[]) {
         SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
         SDL_RenderClear(renderer);
 
-        draw_board(renderer);
-
-        for (const Unit &unit : units) {
-            draw_unit(renderer, unit);
-        }
-  
-        draw_menu(renderer, selected_option);
-        draw_hero_stats(renderer, units[0]);
+        draw_battle(renderer, battle);
 
         SDL_RenderPresent(renderer);
 
