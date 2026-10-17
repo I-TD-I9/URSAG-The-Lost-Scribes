@@ -24,3 +24,4 @@ int random_int (int min, int max);
 bool is_tile_taken (const std::vector<Unit> &units, Side side, int row, int column);
 void spawn_unit (std::vector<Unit> &units, Side side, int max_hp, int max_ap, int max_sp);
 void draw_unit (SDL_Renderer *renderer, const Unit &unit);
+void draw_ghost (SDL_Renderer *renderer, const Unit &unit);

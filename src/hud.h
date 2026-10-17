@@ -17,4 +17,5 @@ enum MenuOption {
 void draw_text (SDL_Renderer *renderer, float x, float y, const std::string &text);
 void draw_panel (SDL_Renderer *renderer, float x, float y, float w, float h);
 void draw_menu (SDL_Renderer *renderer, int selected_option);
-void draw_hero_stats (SDL_Renderer *renderer, const Unit &hero);
+void draw_hero_stats (SDL_Renderer *renderer, const Unit &hero, int ap_cost);
+void draw_hint (SDL_Renderer *renderer, const std::string &text);

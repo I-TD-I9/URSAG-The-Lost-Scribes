@@ -56,7 +56,7 @@ void draw_menu (SDL_Renderer *renderer, int selected_option) {
 }
 
 // Draws hero stats on the battle menu
-void draw_hero_stats (SDL_Renderer *renderer, const Unit &hero) {
+void draw_hero_stats (SDL_Renderer *renderer, const Unit &hero, int ap_cost) {
     const float x = 480.0f;
     const float y = 476.0f;
     const float line_height = 30.0f;
@@ -71,6 +71,21 @@ void draw_hero_stats (SDL_Renderer *renderer, const Unit &hero) {
               "HP " + std::to_string(hero.hp) + " / " + std::to_string(hero.max_hp));
     draw_text(renderer, x + 16.0f, y + 16.0f + line_height * 2,
               "AP " + std::to_string(hero.ap) + " / " + std::to_string(hero.max_ap));
+              
+    //  Show how much AP will cost while planning a move
+    if (ap_cost > 0) {
+        SDL_SetRenderDrawColor(renderer, 255, 150, 80, 255);
+        draw_text(renderer, x + 224.0f, y + 16.0f + line_height * 2,
+                  "-" + std::to_string(ap_cost));
+        SDL_SetRenderDrawColor(renderer, 200, 200, 210, 255);
+    }
+
     draw_text(renderer, x + 16.0f, y + 16.0f + line_height * 3,
               "SP " + std::to_string(hero.sp) + " / " + std::to_string(hero.max_sp));
+}
+
+// Draws line of help text under the HUD
+void draw_hint (SDL_Renderer *renderer, const std::string &text) {
+    SDL_SetRenderDrawColor(renderer, 150, 150, 170, 255);
+    draw_text(renderer, 240.0f, 672.0f, text);
 }

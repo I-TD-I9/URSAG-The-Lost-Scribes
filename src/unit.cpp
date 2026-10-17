@@ -43,8 +43,8 @@ void spawn_unit (std::vector<Unit> &units, Side side, int max_hp, int max_ap, in
     units.push_back(unit);
 }
 
-// Draws a unit inside a tile
-void draw_unit (SDL_Renderer *renderer, const Unit &unit) {
+// The on-screen square a unit is drawn in, a little smaller than its tile
+SDL_FRect unit_rect (const Unit &unit) {
     SDL_FPoint world = grid_to_world(unit.side, unit.row, unit.column);
 
     // Leaves a gap inside the tile square
@@ -59,6 +59,13 @@ void draw_unit (SDL_Renderer *renderer, const Unit &unit) {
     rect.w = bottom_right.x - top_left.x;
     rect.h = bottom_right.y - top_left.y;
 
+    return rect;
+}
+
+// Draws a unit inside a tile
+void draw_unit (SDL_Renderer *renderer, const Unit &unit) {
+    SDL_FRect rect = unit_rect(unit);
+
     // Heroes are blue, and enemies are orange
     if (unit.side == SIDE_HERO) {
         SDL_SetRenderDrawColor(renderer, 80, 160, 255, 255);
@@ -68,4 +75,17 @@ void draw_unit (SDL_Renderer *renderer, const Unit &unit) {
     }
 
     SDL_RenderFillRect(renderer, &rect);
+}
+
+
+// Draws an outline where a unit is planning to move
+void draw_ghost (SDL_Renderer *renderer, const Unit &unit) {
+    SDL_FRect rect = unit_rect(unit);
+
+    SDL_SetRenderDrawColor(renderer, 80, 160, 255, 255);
+    SDL_RenderRect(renderer, &rect);
+
+    // A second outline just inside the first makes the line thicker
+    SDL_FRect inner {rect.x + 1.0f, rect.y + 1.0f, rect.w - 2.0f, rect.h - 2.0f};
+    SDL_RenderRect(renderer, &inner);
 }
