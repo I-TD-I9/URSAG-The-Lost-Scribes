@@ -83,7 +83,7 @@ Keeping the two front columns empty means the closest possible start is 5 apart,
 
 ## Turns
 
-A turn ends when the unit **attacks**, **casts a spell**, **uses an item**, or **runs out of AP**. Moving is the only action that doesn't end the turn, so a typical turn is: move into position, then act.
+A turn ends when the unit **attacks**, **casts a spell**, **uses an item**, **passes**, or **runs out of AP**. Moving is the only action that doesn't end the turn, so a typical turn is: move into position, then act.
 
 ## Battle Menu
 
@@ -93,6 +93,7 @@ A turn ends when the unit **attacks**, **casts a spell**, **uses an item**, or *
 | Move   | 50 AP per tile | Plan a move with the arrow keys. A ghost of the hero shows the destination, and the AP display shows what the move will cost. Enter locks it in, Esc cancels |
 | Spells | SP   | Opens the list of known spells with their SP cost and speed. After choosing one, the player places its shape on the target grid. Casting ends the turn |
 | Items  | 25 AP | Opens the list of items and how many are left. Using one ends the turn |
+| Pass   | -    | Ends the turn without acting. Useful when nothing is in range, or to save SP |
 | Flee   | -    | Leaves the battle |
 
 Every unit's attack works the same way: one tile, range 4, no delay.
@@ -190,6 +191,7 @@ Enemies use the same rules as the hero, aimed at the hero grid. On its turn, an 
 2. **Cast:** if the hero is within range of one of its spells and it has the SP, cast it centered on the hero.
 3. **Attack:** if the hero is within attack range, attack the hero's tile.
 4. **Approach:** move one step closer to the hero.
+5. **Pass:** if none of the above is possible.
 
 An enemy never steps onto a visible danger tile on purpose.
 

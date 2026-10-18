@@ -97,6 +97,11 @@ void handle_menu_key (Battle &battle, SDL_Keycode key) {
             battle.ghost_column = battle.units[0].column;
             battle.mode = MODE_MOVE;
         }
+        else if (battle.selected_option == MENU_PASS) {
+            
+            // End turn without doing anything
+            end_hero_turn(battle);
+        }
         else if (battle.selected_option == MENU_FLEE) {
             battle.finished = true;
         }

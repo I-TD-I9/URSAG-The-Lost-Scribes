@@ -2,7 +2,7 @@
 
 // Text shown for each menu option
 const std::string menu_labels[MENU_OPTION_COUNT] = {
-    "Attack", "Move", "Spells", "Items", "Flee"
+    "Attack", "Move", "Spells", "Items", "Pass", "Flee"
 };
 
 // Draws text at twice its normal size (SDL’s built-in font is only 8×8 pixels)
@@ -87,7 +87,7 @@ void draw_hero_stats (SDL_Renderer *renderer, const Unit &hero, int ap_cost) {
 // Draws line of help text under the HUD
 void draw_hint (SDL_Renderer *renderer, const std::string &text) {
     SDL_SetRenderDrawColor(renderer, 150, 150, 170, 255);
-    draw_text(renderer, 240.0f, 672.0f, text);
+    draw_text(renderer, 480.0f, 632.0f, text);
 }
 
 

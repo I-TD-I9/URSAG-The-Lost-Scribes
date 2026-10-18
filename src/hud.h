@@ -10,6 +10,7 @@ enum MenuOption {
     MENU_MOVE,
     MENU_SPELLS,
     MENU_ITEMS,
+    MENU_PASS,
     MENU_FLEE,
     MENU_OPTION_COUNT // Counts how many options there are
 };
