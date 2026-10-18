@@ -89,3 +89,24 @@ void draw_hint (SDL_Renderer *renderer, const std::string &text) {
     SDL_SetRenderDrawColor(renderer, 150, 150, 170, 255);
     draw_text(renderer, 240.0f, 672.0f, text);
 }
+
+
+// Draws the round number above the board
+void draw_round (SDL_Renderer *renderer, int round) {
+    SDL_SetRenderDrawColor(renderer, 200, 200, 210, 255);
+    draw_text(renderer, 240.0f, 24.0f, "ROUND " + std::to_string(round));
+}
+
+// Draws message in the middle of the board
+void draw_banner (SDL_Renderer *renderer, const std::string &text) {
+    const float text_width = text.size() * 16.0f; 
+    const float panel_width = text_width + 64.0f;
+    const float panel_height = 56.0f;
+    const float x = (window_width - panel_width) / 2.0f;
+    const float y = 224.0f;
+
+    draw_panel(renderer, x, y, panel_width, panel_height);
+
+    SDL_SetRenderDrawColor(renderer, 255, 220, 100, 255);
+    draw_text(renderer, x + 32.0f, y + 20.0f, text);
+}

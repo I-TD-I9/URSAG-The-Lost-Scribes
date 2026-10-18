@@ -5,16 +5,23 @@
 #include "unit.h"
 #include "hud.h"
 
-// AP it costs to move one tile
+// AP cost to move one tile
 const int ap_per_tile {50};
 
-// What the player is doing right now
+// AP cost to attack
+const int attack_ap_cost {25};
+
+// How long the enemy turn lasts
+const float enemy_turn_seconds {1.0f};
+
+// Order
 enum BattleMode {
-    MODE_MENU,      // choosing from the battle menu
-    MODE_MOVE       // planning a move
+    MODE_MENU,          // choosing from the battle menu
+    MODE_MOVE,          // planning a move
+    MODE_ENEMY_TURN     // the enemies are taking their turn
 };
 
-// Everything about the battle that's going on
+// Everything about the battle
 struct Battle {
     std::vector<Unit> units;                // every unit
     int selected_option {MENU_ATTACK};      // highlighted battle menu option
@@ -23,8 +30,13 @@ struct Battle {
     BattleMode mode {MODE_MENU};            // what the player is doing
     int ghost_row {0};                      // where a planned move ends
     int ghost_column {0};
+
+    
+    int round {1};                          // goes up each time hero turn starts
+    float enemy_turn_timer {0.0f};          // seconds left in the enemy turn
 };
 
 Battle start_battle ();
 void handle_key (Battle &battle, SDL_Keycode key);
+void update_battle (Battle &battle, float delta_seconds);
 void draw_battle (SDL_Renderer *renderer, const Battle &battle);

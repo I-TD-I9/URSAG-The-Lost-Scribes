@@ -44,6 +44,23 @@ bool can_ghost_move_to (const Battle &battle, int row, int column) {
     return cost <= hero.ap;
 }
 
+// Ends hero turn and hands it to the enemies
+void end_hero_turn (Battle &battle) {
+    battle.mode = MODE_ENEMY_TURN;
+    battle.enemy_turn_timer = enemy_turn_seconds;
+}
+
+// Starts hero next turn: a new round, full AP, and the menu back on attack
+void start_hero_turn (Battle &battle) {
+    Unit &hero = battle.units[0];
+    hero.ap = hero.max_ap;
+
+    battle.round = battle.round + 1;
+    battle.selected_option = MENU_ATTACK;
+    battle.mode = MODE_MENU;
+}
+
+
 // Reacts to key press while battle menu is open
 void handle_menu_key (Battle &battle, SDL_Keycode key) {
 
@@ -65,7 +82,15 @@ void handle_menu_key (Battle &battle, SDL_Keycode key) {
 
     // Choose highlighted option
     else if (key == SDLK_RETURN) {
-        if (battle.selected_option == MENU_MOVE) {
+        if (battle.selected_option == MENU_ATTACK) {
+            Unit &hero = battle.units[0];
+
+            if (hero.ap >= attack_ap_cost) {
+                hero.ap = hero.ap - attack_ap_cost;
+                end_hero_turn(battle);
+            }
+        }
+        else if (battle.selected_option == MENU_MOVE) {
 
             // Start planning a move from where the hero is standing
             battle.ghost_row = battle.units[0].row;
@@ -107,6 +132,11 @@ void handle_move_key (Battle &battle, SDL_Keycode key) {
         hero.column = battle.ghost_column;
 
         battle.mode = MODE_MENU;
+
+        // Running out of AP ends the turn
+        if (hero.ap <= 0) {
+            end_hero_turn(battle);
+        }
         return;
     }
     else if (key == SDLK_ESCAPE) {
@@ -127,8 +157,20 @@ void handle_key (Battle &battle, SDL_Keycode key) {
     if (battle.mode == MODE_MENU) {
         handle_menu_key(battle, key);
     }
-    else if (battle.mode == MODE_MOVE) {
+        else if (battle.mode == MODE_MOVE) {
         handle_move_key(battle, key);
+    }
+    // During the enemy turn, key presses are ignored
+}
+
+// Moves battle forward in time once every frame
+void update_battle (Battle &battle, float delta_seconds) {
+    if (battle.mode == MODE_ENEMY_TURN) {
+        battle.enemy_turn_timer = battle.enemy_turn_timer - delta_seconds;
+
+        if (battle.enemy_turn_timer <= 0.0f) {
+            start_hero_turn(battle);
+        }
     }
 }
 
@@ -139,12 +181,13 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
     for (const Unit &unit : battle.units) {
         draw_unit(renderer, unit);
     }
-
         int planned_cost = 0;
 
-    if (battle.mode == MODE_MOVE) {
-        // Show where the hero would end up
-        Unit ghost = battle.units[0];
+    if (battle.mode == MODE_MENU) {
+        draw_hint(renderer, "Up/Down: choose   Enter: select");
+    }
+    else if (battle.mode == MODE_MOVE) {
+        Unit ghost = battle.units[0];       // Shows where hero would end up
         ghost.row = battle.ghost_row;
         ghost.column = battle.ghost_column;
         draw_ghost(renderer, ghost);
@@ -153,6 +196,16 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
         draw_hint(renderer, "Arrows: plan move   Enter: confirm   Esc: cancel");
     }
 
-    draw_menu(renderer, battle.selected_option);
+    int highlighted_option = battle.selected_option;
+    if (battle.mode == MODE_ENEMY_TURN) {
+        highlighted_option = -1;
+    }
+
+    draw_round(renderer, battle.round);
+    draw_menu(renderer, highlighted_option);
     draw_hero_stats(renderer, battle.units[0], planned_cost);
+
+    if (battle.mode == MODE_ENEMY_TURN) {
+        draw_banner(renderer, "ENEMY TURN");
+    }
 }

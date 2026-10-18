@@ -35,6 +35,9 @@ int main(int argc, char* argv[]) {
 
     // Start a new battle
     Battle battle = start_battle();
+    
+    // Work out how much time has passed
+    Uint64 previous_frame_ns = SDL_GetTicksNS();
 
     // Main Game Loop
     while (!done) {
@@ -42,6 +45,10 @@ int main(int argc, char* argv[]) {
 
         // Record start time of the frame loop
         Uint64 frame_start_ns = SDL_GetTicksNS();
+
+        // Seconds since the last frame 
+        float delta_seconds = (frame_start_ns - previous_frame_ns) / 1000000000.0f;
+        previous_frame_ns = frame_start_ns;
 
         // Process all input events
         while (SDL_PollEvent(&event)) {
@@ -57,6 +64,11 @@ int main(int argc, char* argv[]) {
         if (battle.finished) {
             done = true;
         }
+
+        
+        // ------------------ GAME UPDATE ------------------
+
+        update_battle(battle, delta_seconds);
 
         // ------------------ GAME RENDERING ------------------
 
@@ -77,6 +89,7 @@ int main(int argc, char* argv[]) {
             SDL_DelayNS(delay_ns);
         }
     }
+    
     // Clean up graphics context resources
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

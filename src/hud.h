@@ -19,3 +19,5 @@ void draw_panel (SDL_Renderer *renderer, float x, float y, float w, float h);
 void draw_menu (SDL_Renderer *renderer, int selected_option);
 void draw_hero_stats (SDL_Renderer *renderer, const Unit &hero, int ap_cost);
 void draw_hint (SDL_Renderer *renderer, const std::string &text);
+void draw_round (SDL_Renderer *renderer, int round);
+void draw_banner (SDL_Renderer *renderer, const std::string &text);
