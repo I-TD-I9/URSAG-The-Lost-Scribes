@@ -22,3 +22,5 @@ SDL_FPoint grid_to_world (Side side, int row, int column);
 SDL_FPoint world_to_screen (float world_x, float world_y);
 void draw_tile (SDL_Renderer *renderer, Side side, int row, int column);
 void draw_board (SDL_Renderer *renderer);
+void draw_tile_tint (SDL_Renderer *renderer, Side side, int row, int column, SDL_Color color);
+void draw_tile_outline (SDL_Renderer *renderer, Side side, int row, int column, SDL_Color color);

@@ -11,6 +11,9 @@ const int ap_per_tile {50};
 // AP cost to attack
 const int attack_ap_cost {25};
 
+// How far away attacks reach
+const int attack_range {4};
+
 // How long the enemy turn lasts
 const float enemy_turn_seconds {1.0f};
 
@@ -18,6 +21,7 @@ const float enemy_turn_seconds {1.0f};
 enum BattleMode {
     MODE_MENU,          // choosing from the battle menu
     MODE_MOVE,          // planning a move
+    MODE_ATTACK,        // aiming an attack
     MODE_ENEMY_TURN     // the enemies are taking their turn
 };
 
@@ -30,6 +34,8 @@ struct Battle {
     BattleMode mode {MODE_MENU};            // what the player is doing
     int ghost_row {0};                      // where a planned move ends
     int ghost_column {0};
+    int target_row {0};                     // the tile attack is aimed at
+    int target_column {0};
 
     
     int round {1};                          // goes up each time hero turn starts

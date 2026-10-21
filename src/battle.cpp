@@ -44,6 +44,31 @@ bool can_ghost_move_to (const Battle &battle, int row, int column) {
     return cost <= hero.ap;
 }
 
+// Distance between a tile on one grid and a tile on the other grid
+int distance_across (int row_a, int column_a, int row_b, int column_b) {
+    return column_a + column_b + 1 + std::abs(row_a - row_b);
+}
+
+// Checks whether the hero can aim an attack enemy tile
+bool is_in_attack_range (const Battle &battle, int row, int column) {
+    const Unit &hero = battle.units[0];
+
+    // Must be on the enemy grid
+    if (row < 0 || row >= grid_rows || column < 0 || column >= grid_columns) {
+        return false;
+    }
+
+    return distance_across(hero.row, hero.column, row, column) <= attack_range;
+}
+
+// Checks whether any enemy tile is in range
+bool can_attack_anything (const Battle &battle) {
+    const Unit &hero = battle.units[0];
+
+    return is_in_attack_range(battle, hero.row, 0);
+}
+
+
 // Ends hero turn and hands it to the enemies
 void end_hero_turn (Battle &battle) {
     battle.mode = MODE_ENEMY_TURN;
@@ -63,8 +88,6 @@ void start_hero_turn (Battle &battle) {
 
 // Reacts to key press while battle menu is open
 void handle_menu_key (Battle &battle, SDL_Keycode key) {
-
-    // Move the selection up, wrapping around to the bottom
     if (key == SDLK_UP) {
         battle.selected_option = battle.selected_option - 1;
         if (battle.selected_option < 0) {
@@ -82,17 +105,16 @@ void handle_menu_key (Battle &battle, SDL_Keycode key) {
 
     // Choose highlighted option
     else if (key == SDLK_RETURN) {
-        if (battle.selected_option == MENU_ATTACK) {
-            Unit &hero = battle.units[0];
+            if (battle.selected_option == MENU_ATTACK) {
+            const Unit &hero = battle.units[0];
 
-            if (hero.ap >= attack_ap_cost) {
-                hero.ap = hero.ap - attack_ap_cost;
-                end_hero_turn(battle);
+            if (hero.ap >= attack_ap_cost && can_attack_anything(battle)) {
+                battle.target_row = hero.row;
+                battle.target_column = 0;
+                battle.mode = MODE_ATTACK;
             }
         }
         else if (battle.selected_option == MENU_MOVE) {
-
-            // Start planning a move from where the hero is standing
             battle.ghost_row = battle.units[0].row;
             battle.ghost_column = battle.units[0].column;
             battle.mode = MODE_MOVE;
@@ -157,15 +179,52 @@ void handle_move_key (Battle &battle, SDL_Keycode key) {
     }
 }
 
+// Reacts to key press while the player is aiming an attack
+void handle_attack_key (Battle &battle, SDL_Keycode key) {
+    int row = battle.target_row;
+    int column = battle.target_column;
+
+    // The enemy grid counts columns from center line
+    if (key == SDLK_UP) {
+        row = row - 1;
+    }
+    else if (key == SDLK_DOWN) {
+        row = row + 1;
+    }
+    else if (key == SDLK_LEFT) {
+        column = column - 1;
+    }
+    else if (key == SDLK_RIGHT) {
+        column = column + 1;
+    }
+    else if (key == SDLK_RETURN) {
+        Unit &hero = battle.units[0];
+        hero.ap = hero.ap - attack_ap_cost;
+        end_hero_turn(battle);
+        return;
+    }
+    else if (key == SDLK_ESCAPE) {
+        battle.mode = MODE_MENU;
+        return;
+    }
+
+    if (is_in_attack_range(battle, row, column)) {
+        battle.target_row = row;
+        battle.target_column = column;
+    }
+}
+
 // Reacts to one key press during battle
 void handle_key (Battle &battle, SDL_Keycode key) {
     if (battle.mode == MODE_MENU) {
         handle_menu_key(battle, key);
     }
-        else if (battle.mode == MODE_MOVE) {
+    else if (battle.mode == MODE_MOVE) {
         handle_move_key(battle, key);
     }
-    // During the enemy turn, key presses are ignored
+    else if (battle.mode == MODE_ATTACK) {
+        handle_attack_key(battle, key);
+    }
 }
 
 // Moves battle forward in time once every frame
@@ -181,15 +240,32 @@ void update_battle (Battle &battle, float delta_seconds) {
 
 // Draws the board, the units and the HUD
 void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
-    draw_board(renderer);
+        draw_board(renderer);
+
+    // Tints every enemy tile the attack can reach
+    if (battle.mode == MODE_ATTACK) {
+        for (int row = 0; row < grid_rows; row++) {
+            for (int column = 0; column < grid_columns; column++) {
+                if (is_in_attack_range(battle, row, column)) {
+                    draw_tile_tint(renderer, SIDE_ENEMY, row, column, SDL_Color {255, 220, 100, 50});
+                }
+            }
+        }
+    }
 
     for (const Unit &unit : battle.units) {
         draw_unit(renderer, unit);
     }
-        int planned_cost = 0;
+
+    int planned_cost = 0;
 
     if (battle.mode == MODE_MENU) {
-        draw_hint(renderer, "Up/Down: choose   Enter: select");
+        if (battle.selected_option == MENU_ATTACK && !can_attack_anything(battle)) {
+            draw_hint(renderer, "Nothing in range: move closer or Pass");
+        }
+        else {
+            draw_hint(renderer, "Up/Down: choose   Enter: select");
+        }
     }
     else if (battle.mode == MODE_MOVE) {
         Unit ghost = battle.units[0];       // Shows where hero would end up
@@ -200,8 +276,15 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
         planned_cost = move_cost(battle);
         draw_hint(renderer, "Arrows: plan move   Enter: confirm   Esc: cancel");
     }
+    else if (battle.mode == MODE_ATTACK) {
+        draw_tile_outline(renderer, SIDE_ENEMY, battle.target_row, battle.target_column, SDL_Color {255, 220, 100, 255});
+
+        planned_cost = attack_ap_cost;
+        draw_hint(renderer, "Arrows: aim   Enter: attack   Esc: cancel");
+    }
 
     int highlighted_option = battle.selected_option;
+
     if (battle.mode == MODE_ENEMY_TURN) {
         highlighted_option = -1;
     }
