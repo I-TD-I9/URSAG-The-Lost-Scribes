@@ -22,7 +22,9 @@ enum BattleMode {
     MODE_MENU,          // choosing from the battle menu
     MODE_MOVE,          // planning a move
     MODE_ATTACK,        // aiming an attack
-    MODE_ENEMY_TURN     // the enemies are taking their turn
+    MODE_ENEMY_TURN,    // enemy turn
+    MODE_VICTORY,       // all enemies defeated
+    MODE_DEFEAT         // the hero is defeated
 };
 
 // Everything about the battle

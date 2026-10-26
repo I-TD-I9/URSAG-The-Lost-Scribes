@@ -62,6 +62,18 @@ void damage_tile (Battle &battle, Side side, int row, int column, int damage) {
 }
 
 
+// Checks whether every enemy has been defeated
+bool all_enemies_defeated (const Battle &battle) {
+    for (const Unit &unit : battle.units) {
+        if (unit.side == SIDE_ENEMY && is_alive(unit)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
 // Ends hero turn and hands it to the enemies
 void end_hero_turn (Battle &battle) {
     battle.mode = MODE_ENEMY_TURN;
@@ -221,6 +233,17 @@ void handle_attack_key (Battle &battle, SDL_Keycode key) {
 }
 
 
+// Reacts to key press once the battle is won/lost
+void handle_end_key (Battle &battle, SDL_Keycode key) {
+    if (key == SDLK_RETURN) {
+        battle = start_battle();
+    }
+    else if (key == SDLK_ESCAPE) {
+        battle.finished = true;
+    }
+}
+
+
 // Reacts to one key press during battle
 void handle_key (Battle &battle, SDL_Keycode key) {
     if (battle.mode == MODE_MENU) {
@@ -232,11 +255,29 @@ void handle_key (Battle &battle, SDL_Keycode key) {
     else if (battle.mode == MODE_ATTACK) {
         handle_attack_key(battle, key);
     }
+    else if (battle.mode == MODE_VICTORY || battle.mode == MODE_DEFEAT) {
+        handle_end_key(battle, key);
+    }
 }
 
 
 // Moves battle forward in time once every frame
 void update_battle (Battle &battle, float delta_seconds) {
+    if (battle.mode == MODE_VICTORY || battle.mode == MODE_DEFEAT) {
+        return;
+    }
+
+    // Check every frame whether one side has been wiped out
+    if (!is_alive(battle.units[0])) {
+        battle.mode = MODE_DEFEAT;
+        return;
+    }
+
+    if (all_enemies_defeated(battle)) {
+        battle.mode = MODE_VICTORY;
+        return;
+    }
+
     if (battle.mode == MODE_ENEMY_TURN) {
         battle.enemy_turn_timer = battle.enemy_turn_timer - delta_seconds;
 
@@ -279,9 +320,11 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
         draw_hint(renderer, "Arrows: aim   Enter: attack   Esc: cancel");
     }
 
+    bool menu_locked = (battle.mode == MODE_ENEMY_TURN || battle.mode == MODE_VICTORY || battle.mode == MODE_DEFEAT);
+
     int highlighted_option = battle.selected_option;
 
-    if (battle.mode == MODE_ENEMY_TURN) {
+    if (menu_locked) {
         highlighted_option = -1;
     }
 
@@ -291,5 +334,13 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
 
     if (battle.mode == MODE_ENEMY_TURN) {
         draw_banner(renderer, "ENEMY TURN");
+    }
+    else if (battle.mode == MODE_VICTORY) {
+        draw_banner(renderer, "VICTORY");
+        draw_hint(renderer, "Enter: new battle   Esc: quit");
+    }
+    else if (battle.mode == MODE_DEFEAT) {
+        draw_banner(renderer, "DEFEAT");
+        draw_hint(renderer, "Enter: new battle   Esc: quit");
     }
 }
