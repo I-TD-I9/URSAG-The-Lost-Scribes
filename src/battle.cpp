@@ -254,6 +254,7 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
         for (const Unit &unit : battle.units) {
         if (is_alive(unit)) {
             draw_unit(renderer, unit);
+            draw_hp_bar(renderer, unit);
         }
     }
 

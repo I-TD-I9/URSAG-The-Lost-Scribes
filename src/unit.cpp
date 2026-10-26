@@ -95,3 +95,33 @@ void draw_ghost (SDL_Renderer *renderer, const Unit &unit) {
     SDL_FRect inner {rect.x + 1.0f, rect.y + 1.0f, rect.w - 2.0f, rect.h - 2.0f};
     SDL_RenderRect(renderer, &inner);
 }
+
+
+
+// Draws health bar under a unit
+void draw_hp_bar (SDL_Renderer *renderer, const Unit &unit) {
+    SDL_FRect body = unit_rect(unit);
+
+    // HP bar sits below the unit
+    SDL_FRect back {body.x, body.y + body.h + 4.0f, body.w, 5.0f};
+
+    // Shrinks as HP goes down
+    SDL_FRect fill = back;
+    fill.w = back.w * unit.hp / unit.max_hp;
+
+    SDL_SetRenderDrawColor(renderer, 40, 40, 50, 255);
+    SDL_RenderFillRect(renderer, &back);
+    
+    if (unit.hp < unit.max_hp * 0.5 && unit.hp > unit.max_hp * 0.2) {
+        SDL_SetRenderDrawColor(renderer,  255, 255, 0, 255);
+        SDL_RenderFillRect(renderer, &fill);
+    }
+    else if ( unit.hp <unit.max_hp * 0.2) {
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        SDL_RenderFillRect(renderer, &fill);
+    }
+    else {
+        SDL_SetRenderDrawColor(renderer, 90, 210, 110, 255);
+        SDL_RenderFillRect(renderer, &fill);
+    }
+}
