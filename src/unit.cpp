@@ -11,10 +11,16 @@ int random_int (int min, int max) {
     return distribution(gen);
 }
 
-// Checks if unit is occupying a tile
+
+// A unit is still in fight while it has HP
+bool is_alive (const Unit &unit) {
+    return unit.hp > 0;
+}
+
+// Checks if a living unit is occupying a tile
 bool is_tile_taken (const std::vector<Unit> &units, Side side, int row, int column) {
     for (const Unit &unit : units) {
-        if (unit.side == side && unit.row == row && unit.column == column) {
+        if (is_alive(unit) && unit.side == side && unit.row == row && unit.column == column) {
             return true;
         }
     }

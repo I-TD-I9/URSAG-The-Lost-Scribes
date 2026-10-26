@@ -12,10 +12,12 @@ Battle start_battle () {
     return battle;
 }
 
+
 // Number of steps between two tiles on the same grid
 int grid_distance (int row_a, int column_a, int row_b, int column_b) {
     return std::abs(row_a - row_b) + std::abs(column_a - column_b);
 }
+
 
 // AP the planned move will cost, counted from where the hero stands now
 int move_cost (const Battle &battle) {
@@ -23,6 +25,7 @@ int move_cost (const Battle &battle) {
 
     return grid_distance(hero.row, hero.column, battle.ghost_row, battle.ghost_column) * ap_per_tile;
 }
+
 
 // Checks whether hero's ghost may move onto tile
 bool can_ghost_move_to (const Battle &battle, int row, int column) {
@@ -42,6 +45,20 @@ bool can_ghost_move_to (const Battle &battle, int row, int column) {
     // Must be able to afford it
     int cost = grid_distance(hero.row, hero.column, row, column) * ap_per_tile;
     return cost <= hero.ap;
+}
+
+
+// Damages unit on a tile (HP never goes below 0)
+void damage_tile (Battle &battle, Side side, int row, int column, int damage) {
+    for (Unit &unit : battle.units) {
+        if (is_alive(unit) && unit.side == side && unit.row == row && unit.column == column) {
+            unit.hp = unit.hp - damage;
+
+            if (unit.hp < 0) {
+                unit.hp = 0;
+            }
+        }
+    }
 }
 
 
@@ -82,12 +99,21 @@ void handle_menu_key (Battle &battle, SDL_Keycode key) {
 
     // Choose highlighted option
     else if (key == SDLK_RETURN) {
-            if (battle.selected_option == MENU_ATTACK) {
+                    if (battle.selected_option == MENU_ATTACK) {
             const Unit &hero = battle.units[0];
 
-                if (hero.ap >= attack_ap_cost) {
+            if (hero.ap >= attack_ap_cost) {
                 battle.target_row = hero.row;
                 battle.target_column = 0;
+
+                for (const Unit &unit : battle.units) {
+                    if (unit.side == SIDE_ENEMY && is_alive(unit)) {
+                        battle.target_row = unit.row;
+                        battle.target_column = unit.column;
+                        break;
+                    }
+                }
+
                 battle.mode = MODE_ATTACK;
             }
         }
@@ -176,6 +202,8 @@ void handle_attack_key (Battle &battle, SDL_Keycode key) {
         column = column + 1;
     }
     else if (key == SDLK_RETURN) {
+        damage_tile(battle, SIDE_ENEMY, battle.target_row, battle.target_column, attack_damage);
+
         Unit &hero = battle.units[0];
         hero.ap = hero.ap - attack_ap_cost;
         end_hero_turn(battle);
@@ -223,8 +251,10 @@ void update_battle (Battle &battle, float delta_seconds) {
 void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
     draw_board(renderer);
 
-    for (const Unit &unit : battle.units) {
-        draw_unit(renderer, unit);
+        for (const Unit &unit : battle.units) {
+        if (is_alive(unit)) {
+            draw_unit(renderer, unit);
+        }
     }
 
     int planned_cost = 0;

@@ -11,6 +11,9 @@ const int ap_per_tile {50};
 // AP cost to attack
 const int attack_ap_cost {25};
 
+// Damage an attack deals
+const int attack_damage {30};
+
 // How long the enemy turn lasts
 const float enemy_turn_seconds {1.0f};
 
