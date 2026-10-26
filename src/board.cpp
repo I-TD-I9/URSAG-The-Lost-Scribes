@@ -1,5 +1,11 @@
 #include "board.h"
 
+// Checks that row and column are inside a grid.
+bool is_on_grid (int row, int column) {
+    return row >= 0 && row < grid_rows && column >= 0 && column < grid_columns;
+}
+
+
 // Convert a tile on one side's grid into a position on the whole board
 SDL_FPoint grid_to_world (Side side, int row, int column) {
     SDL_FPoint world;

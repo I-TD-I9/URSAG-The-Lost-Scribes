@@ -30,7 +30,7 @@ void spawn_unit (std::vector<Unit> &units, Side side, int max_hp, int max_ap, in
     // Goes through tiles until it finds a free one
     do {
         unit.row = random_int(0, grid_rows - 1);
-        unit.column = random_int(spawn_min_column, grid_columns - 1);
+        unit.column = random_int(0, grid_columns - 1);
     } while (is_tile_taken(units, side, unit.row, unit.column));
 
     unit.max_hp = max_hp;

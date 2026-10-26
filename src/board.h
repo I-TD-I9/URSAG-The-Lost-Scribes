@@ -18,6 +18,7 @@ enum Side {
     SIDE_ENEMY
 };
 
+bool is_on_grid (int row, int column);
 SDL_FPoint grid_to_world (Side side, int row, int column);
 SDL_FPoint world_to_screen (float world_x, float world_y);
 void draw_tile (SDL_Renderer *renderer, Side side, int row, int column);

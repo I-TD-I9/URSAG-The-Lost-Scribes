@@ -11,9 +11,6 @@ const int ap_per_tile {50};
 // AP cost to attack
 const int attack_ap_cost {25};
 
-// How far away attacks reach
-const int attack_range {4};
-
 // How long the enemy turn lasts
 const float enemy_turn_seconds {1.0f};
 

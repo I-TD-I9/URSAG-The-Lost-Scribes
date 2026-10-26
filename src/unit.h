@@ -4,8 +4,6 @@
 #include <vector>
 #include "board.h"
 
-const int spawn_min_column {2};  // Units always spawn in columns c2 to c5
-
 // A unit on the board
 struct Unit {
     Side side {SIDE_HERO};      // Which grid it stands on
