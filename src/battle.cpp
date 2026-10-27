@@ -74,12 +74,51 @@ bool all_enemies_defeated (const Battle &battle) {
 }
 
 
+// Moves next_enemy past enemies that been defeated
+void skip_defeated_enemies (Battle &battle) {
+    int unit_count = battle.units.size();
+
+    while (battle.next_enemy < unit_count && !is_alive(battle.units[battle.next_enemy])) {
+        battle.next_enemy = battle.next_enemy + 1;
+    }
+}
+
+
+// Checks whether enemy is waiting to act this turn
+bool enemy_waiting (const Battle &battle) {
+    int unit_count = battle.units.size();
+
+    return battle.next_enemy < unit_count;
+}
+
+
+// Lets one enemy act
+void enemy_act (Battle &battle, Unit &enemy) {
+    const Unit &hero = battle.units[0];
+
+    if (enemy.ap >= attack_ap_cost) {
+        enemy.ap = enemy.ap - attack_ap_cost;
+        damage_tile(battle, SIDE_HERO, hero.row, hero.column, attack_damage);
+    }
+}
+
+
 // Ends hero turn and hands it to the enemies
 void end_hero_turn (Battle &battle) {
     battle.mode = MODE_ENEMY_TURN;
-    battle.enemy_turn_timer = enemy_turn_seconds;
-}
 
+    // Enemy's AP refills at the start of their turn
+    for (Unit &unit : battle.units) {
+        if (unit.side == SIDE_ENEMY) {
+            unit.ap = unit.max_ap;
+        }
+    }
+
+    // Enemies act one at a time
+    battle.next_enemy = 1;
+    skip_defeated_enemies(battle);
+    battle.enemy_turn_timer = enemy_action_seconds;
+}
 
 // Starts hero next turn: a new round, full AP, and the menu back on attack
 void start_hero_turn (Battle &battle) {
@@ -282,7 +321,18 @@ void update_battle (Battle &battle, float delta_seconds) {
         battle.enemy_turn_timer = battle.enemy_turn_timer - delta_seconds;
 
         if (battle.enemy_turn_timer <= 0.0f) {
-            start_hero_turn(battle);
+            if (enemy_waiting(battle)) {
+                // Enemy acts then the next one gets a turn after pause
+                enemy_act(battle, battle.units[battle.next_enemy]);
+
+                battle.next_enemy = battle.next_enemy + 1;
+                skip_defeated_enemies(battle);
+                battle.enemy_turn_timer = enemy_action_seconds;
+            }
+            else {
+                // All enemies acted
+                start_hero_turn(battle);
+            }
         }
     }
 }
@@ -297,6 +347,12 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
             draw_unit(renderer, unit);
             draw_hp_bar(renderer, unit);
         }
+    }
+
+    // Outline enemy's turn
+    if (battle.mode == MODE_ENEMY_TURN && enemy_waiting(battle)) {
+        const Unit &enemy = battle.units[battle.next_enemy];
+        draw_tile_outline(renderer, enemy.side, enemy.row, enemy.column, SDL_Color {240, 90, 80, 255});
     }
 
     int planned_cost = 0;
