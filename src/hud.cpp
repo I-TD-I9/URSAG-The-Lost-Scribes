@@ -87,7 +87,7 @@ void draw_hero_stats (SDL_Renderer *renderer, const Unit &hero, int ap_cost) {
 // Draws line of help text under the HUD
 void draw_hint (SDL_Renderer *renderer, const std::string &text) {
     SDL_SetRenderDrawColor(renderer, 150, 150, 170, 255);
-    draw_text(renderer, 480.0f, 632.0f, text);
+    draw_text(renderer, 240.0f, 694.0f, text);
 }
 
 
@@ -109,4 +109,59 @@ void draw_banner (SDL_Renderer *renderer, const std::string &text) {
 
     SDL_SetRenderDrawColor(renderer, 255, 220, 100, 255);
     draw_text(renderer, x + 32.0f, y + 20.0f, text);
+}
+
+
+
+// Draws Spells list with each spell's SP cost and speed
+void draw_spell_menu (SDL_Renderer *renderer, const std::vector<Spell> &spells, int selected_spell, int sp) {
+    const float x = 800.0f;
+    const float y = 476.0f;
+    const float line_height = 30.0f;
+    const float panel_width = 460.0f;
+    const int spell_count = spells.size();
+    const float panel_height = 26.0f + spell_count * line_height;
+
+    draw_panel(renderer, x, y, panel_width, panel_height);
+
+    for (int i = 0; i < spell_count; i++) {
+        const Spell &spell = spells[i];
+        float line_y = y + 16.0f + i * line_height;
+
+        // Highlight bar behind selected spell
+        if (i == selected_spell) {
+            SDL_FRect highlight {x + 8.0f, line_y - 6.0f, panel_width - 16.0f, 28.0f};
+            SDL_SetRenderDrawColor(renderer, 70, 80, 140, 255);
+            SDL_RenderFillRect(renderer, &highlight);
+        }
+
+        // Gray if the hero can't afford it, yellow if selected, white otherwise
+        if (spell.sp_cost > sp) {
+            SDL_SetRenderDrawColor(renderer, 100, 100, 115, 255);
+        }
+        else if (i == selected_spell) {
+            SDL_SetRenderDrawColor(renderer, 255, 220, 100, 255);
+        }
+        else {
+            SDL_SetRenderDrawColor(renderer, 200, 200, 210, 255);
+        }
+
+        std::string marker = "  ";
+        if (i == selected_spell) {
+            marker = "> ";
+        }
+
+        std::string speed_text = "Instant";
+        if (spell.hidden) {
+            speed_text = "Hidden";
+        }
+        else if (spell.speed == SPEED_WIND_UP) {
+            speed_text = "Wind-up";
+        }
+
+        // Three columns (name, cost, speed)
+        draw_text(renderer, x + 16.0f, line_y, marker + spell.name);
+        draw_text(renderer, x + 216.0f, line_y, std::to_string(spell.sp_cost) + " SP");
+        draw_text(renderer, x + 332.0f, line_y, speed_text);
+    }
 }

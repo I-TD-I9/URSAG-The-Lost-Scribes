@@ -3,6 +3,8 @@
 #include <SDL3/SDL.h>
 #include <vector>
 #include "board.h"
+#include "board.h"
+#include "spell.h"
 
 // A unit on the board
 struct Unit {
@@ -16,6 +18,8 @@ struct Unit {
     int max_ap {0};
     int sp {0};
     int max_sp {0};
+
+    std::vector<Spell> spells;
 };
 
 int random_int (int min, int max);

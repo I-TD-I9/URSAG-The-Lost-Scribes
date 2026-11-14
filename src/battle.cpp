@@ -9,6 +9,9 @@ Battle start_battle () {
     spawn_unit(battle.units, SIDE_ENEMY, 250, 150, 120);    // Enemy 1
     spawn_unit(battle.units, SIDE_ENEMY, 150, 150, 120);    // Enemy 2
 
+    battle.units[0].spells = hero_spells();
+    
+
     return battle;
 }
 
@@ -173,6 +176,12 @@ void handle_menu_key (Battle &battle, SDL_Keycode key) {
             battle.ghost_column = battle.units[0].column;
             battle.mode = MODE_MOVE;
         }
+        else if (battle.selected_option == MENU_SPELLS) {
+
+            // Opens Spells list
+            battle.selected_spell = 0;
+            battle.mode = MODE_SPELL_MENU;
+        }
         else if (battle.selected_option == MENU_PASS) {
             
             // End turn without doing anything
@@ -282,6 +291,28 @@ void handle_end_key (Battle &battle, SDL_Keycode key) {
     }
 }
 
+// Reacts to a key press while spells list is open
+void handle_spell_menu_key (Battle &battle, SDL_Keycode key) {
+    int spell_count = battle.units[0].spells.size();
+
+    if (key == SDLK_UP) {
+        battle.selected_spell = battle.selected_spell - 1;
+        if (battle.selected_spell < 0) {
+            battle.selected_spell = spell_count - 1;
+        }
+    }
+    else if (key == SDLK_DOWN) {
+        battle.selected_spell = battle.selected_spell + 1;
+        if (battle.selected_spell >= spell_count) {
+            battle.selected_spell = 0;
+        }
+    }
+    // Back to the battle menu
+    else if (key == SDLK_ESCAPE) {
+        battle.mode = MODE_MENU;
+    }
+}
+
 
 // Reacts to one key press during battle
 void handle_key (Battle &battle, SDL_Keycode key) {
@@ -293,6 +324,9 @@ void handle_key (Battle &battle, SDL_Keycode key) {
     }
     else if (battle.mode == MODE_ATTACK) {
         handle_attack_key(battle, key);
+    }
+    else if (battle.mode == MODE_SPELL_MENU) {
+        handle_spell_menu_key(battle, key);
     }
     else if (battle.mode == MODE_VICTORY || battle.mode == MODE_DEFEAT) {
         handle_end_key(battle, key);
@@ -368,6 +402,11 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
 
         planned_cost = move_cost(battle);
         draw_hint(renderer, "Arrows: plan move   Enter: confirm   Esc: cancel");
+    }
+    else if (battle.mode == MODE_SPELL_MENU) {
+        const Unit &hero = battle.units[0];
+        draw_spell_menu(renderer, hero.spells, battle.selected_spell, hero.sp);
+        draw_hint(renderer, "Enter: select   Esc: back");
     }
     else if (battle.mode == MODE_ATTACK) {
         draw_tile_outline(renderer, SIDE_ENEMY, battle.target_row, battle.target_column, SDL_Color {255, 220, 100, 255});
