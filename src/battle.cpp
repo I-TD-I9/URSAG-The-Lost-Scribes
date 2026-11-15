@@ -291,6 +291,18 @@ void handle_end_key (Battle &battle, SDL_Keycode key) {
     }
 }
 
+// The grid a spell lands on
+Side spell_target_side (const Unit &caster, const Spell &spell) {
+    if (spell.heals) {
+        return caster.side;
+    }
+    if (caster.side == SIDE_HERO) {
+        return SIDE_ENEMY;
+    }
+    return SIDE_HERO;
+}
+
+
 // Reacts to a key press while spells list is open
 void handle_spell_menu_key (Battle &battle, SDL_Keycode key) {
     int spell_count = battle.units[0].spells.size();
@@ -307,9 +319,60 @@ void handle_spell_menu_key (Battle &battle, SDL_Keycode key) {
             battle.selected_spell = 0;
         }
     }
+    else if (key == SDLK_RETURN) {
+        const Unit &hero = battle.units[0];
+        const Spell &spell = hero.spells[battle.selected_spell];
+
+        if (hero.sp >= spell.sp_cost) {
+            // Healing starts on hero's grid, everything else at enemy grid
+            if (spell.heals) {
+                battle.spell_column = hero.column;
+            }
+            else {
+                battle.spell_column = 0;
+            }
+            battle.mode = MODE_SPELL_AIM;
+        }
+    }
     // Back to the battle menu
     else if (key == SDLK_ESCAPE) {
         battle.mode = MODE_MENU;
+    }
+}
+
+
+// Reacts to a key press while player is aiming a spell
+void handle_spell_aim_key (Battle &battle, SDL_Keycode key) {
+    const Unit &hero = battle.units[0];
+    const Spell &spell = hero.spells[battle.selected_spell];
+    Side side = spell_target_side(hero, spell);
+
+    int column = battle.spell_column;
+
+    // Columns run in opposite directions on the two grids
+    if (key == SDLK_RIGHT) {
+        if (side == SIDE_ENEMY) {
+            column = column + 1;
+        }
+        else {
+            column = column - 1;
+        }
+    }
+    else if (key == SDLK_LEFT) {
+        if (side == SIDE_ENEMY) {
+            column = column - 1;
+        }
+        else {
+            column = column + 1;
+        }
+    }
+    else if (key == SDLK_ESCAPE) {
+        battle.mode = MODE_SPELL_MENU;
+        return;
+    }
+
+    if (is_on_grid(hero.row, column)) {
+        battle.spell_column = column;
     }
 }
 
@@ -327,6 +390,9 @@ void handle_key (Battle &battle, SDL_Keycode key) {
     }
     else if (battle.mode == MODE_SPELL_MENU) {
         handle_spell_menu_key(battle, key);
+    }
+    else if (battle.mode == MODE_SPELL_AIM) {
+        handle_spell_aim_key(battle, key);
     }
     else if (battle.mode == MODE_VICTORY || battle.mode == MODE_DEFEAT) {
         handle_end_key(battle, key);
@@ -376,7 +442,24 @@ void update_battle (Battle &battle, float delta_seconds) {
 void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
     draw_board(renderer);
 
-        for (const Unit &unit : battle.units) {
+    // Tint tiles a spell covers
+    if (battle.mode == MODE_SPELL_AIM) {
+        const Unit &hero = battle.units[0];
+        const Spell &spell = hero.spells[battle.selected_spell];
+        Side side = spell_target_side(hero, spell);
+
+        // Healing green, everything else orange
+        SDL_Color color {255, 150, 60, 90};
+        if (spell.heals) {
+            color = SDL_Color {90, 220, 120, 90};
+        }
+
+        for (const Tile &tile : spell_tiles(spell, hero.row, battle.spell_column)) {
+            draw_tile_tint(renderer, side, tile.row, tile.column, color);
+        }
+    }
+
+    for (const Unit &unit : battle.units) {
         if (is_alive(unit)) {
             draw_unit(renderer, unit);
             draw_hp_bar(renderer, unit);
@@ -390,6 +473,7 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
     }
 
     int planned_cost = 0;
+    int planned_sp = 0;
 
     if (battle.mode == MODE_MENU) {
         draw_hint(renderer, "Up/Down: choose   Enter: select");
@@ -402,6 +486,16 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
 
         planned_cost = move_cost(battle);
         draw_hint(renderer, "Arrows: plan move   Enter: confirm   Esc: cancel");
+    }
+    else if (battle.mode == MODE_SPELL_AIM) {
+        const Unit &hero = battle.units[0];
+        const Spell &spell = hero.spells[battle.selected_spell];
+
+        // Outline anchor
+        draw_tile_outline(renderer, spell_target_side(hero, spell), hero.row, battle.spell_column, SDL_Color {255, 220, 100, 255});
+
+        planned_sp = spell.sp_cost;
+        draw_hint(renderer, spell.name + ":  Left/Right: aim   Esc: back");
     }
     else if (battle.mode == MODE_SPELL_MENU) {
         const Unit &hero = battle.units[0];
@@ -425,7 +519,7 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
 
     draw_round(renderer, battle.round);
     draw_menu(renderer, highlighted_option);
-    draw_hero_stats(renderer, battle.units[0], planned_cost);
+    draw_hero_stats(renderer, battle.units[0], planned_cost, planned_sp);
 
     if (battle.mode == MODE_ENEMY_TURN) {
         draw_banner(renderer, "ENEMY TURN");

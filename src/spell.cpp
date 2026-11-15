@@ -57,3 +57,20 @@ std::vector<Spell> hero_spells () {
 
     return spells;
 }
+
+
+// The tiles a spell covers when its anchor is on
+std::vector<Tile> spell_tiles (const Spell &spell, int anchor_row, int anchor_column) {
+    std::vector<Tile> tiles;
+
+    for (const Offset &offset : spell.shape) {
+        int row = anchor_row + offset.row;
+        int column = anchor_column + offset.column;
+
+        if (is_on_grid(row, column)) {
+            tiles.push_back(Tile {row, column});
+        }
+    }
+
+    return tiles;
+}

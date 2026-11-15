@@ -18,6 +18,12 @@ enum Side {
     SIDE_ENEMY
 };
 
+// A row and column on grid
+struct Tile {
+    int row;
+    int column;
+};
+
 bool is_on_grid (int row, int column);
 SDL_FPoint grid_to_world (Side side, int row, int column);
 SDL_FPoint world_to_screen (float world_x, float world_y);

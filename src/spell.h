@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include "board.h"
 
 // How fast a spell lands
 enum SpellSpeed {
@@ -27,3 +28,4 @@ struct Spell {
 };
 
 std::vector<Spell> hero_spells ();
+std::vector<Tile> spell_tiles (const Spell &spell, int anchor_row, int anchor_column);

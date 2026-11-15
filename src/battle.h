@@ -23,6 +23,7 @@ enum BattleMode {
     MODE_MOVE,          // planning a move
     MODE_ATTACK,        // aiming an attack
     MODE_SPELL_MENU,    // choosing from Spells list
+    MODE_SPELL_AIM,     // sliding a spell along row
     MODE_ENEMY_TURN,    // enemy turn
     MODE_VICTORY,       // all enemies defeated
     MODE_DEFEAT         // the hero is defeated
@@ -40,6 +41,7 @@ struct Battle {
     int target_row {0};                     // the tile attack is aimed at
     int target_column {0};
     int selected_spell {0};                 // highlighted spell in the Spells list
+    int spell_column {0};                   // where the spell's anchor is
 
     int round {1};                          // goes up each time hero turn starts
     float enemy_turn_timer {0.0f};          // seconds until the next enemy acts
