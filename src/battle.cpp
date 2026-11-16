@@ -65,6 +65,20 @@ void damage_tile (Battle &battle, Side side, int row, int column, int damage) {
 }
 
 
+// Restores HP to a unit on one tile (HP never goes above max)
+void heal_tile (Battle &battle, Side side, int row, int column, int amount) {
+    for (Unit &unit : battle.units) {
+        if (is_alive(unit) && unit.side == side && unit.row == row && unit.column == column) {
+            unit.hp = unit.hp + amount;
+
+            if (unit.hp > unit.max_hp) {
+                unit.hp = unit.max_hp;
+            }
+        }
+    }
+}
+
+
 // Checks whether every enemy has been defeated
 bool all_enemies_defeated (const Battle &battle) {
     for (const Unit &unit : battle.units) {
@@ -303,6 +317,23 @@ Side spell_target_side (const Unit &caster, const Spell &spell) {
 }
 
 
+// Casts spell right away then hits (or heals) every tile it covers
+void cast_spell_now (Battle &battle, Unit &caster, const Spell &spell, int anchor_column) {
+    caster.sp = caster.sp - spell.sp_cost;
+
+    Side side = spell_target_side(caster, spell);
+
+    for (const Tile &tile : spell_tiles(spell, caster.row, anchor_column)) {
+        if (spell.heals) {
+            heal_tile(battle, side, tile.row, tile.column, spell.power);
+        }
+        else {
+            damage_tile(battle, side, tile.row, tile.column, spell.power);
+        }
+    }
+}
+
+
 // Reacts to a key press while spells list is open
 void handle_spell_menu_key (Battle &battle, SDL_Keycode key) {
     int spell_count = battle.units[0].spells.size();
@@ -365,6 +396,13 @@ void handle_spell_aim_key (Battle &battle, SDL_Keycode key) {
         else {
             column = column + 1;
         }
+    }
+    else if (key == SDLK_RETURN) {
+        if (spell.speed == SPEED_INSTANT) {
+            cast_spell_now(battle, battle.units[0], spell, battle.spell_column);
+            end_hero_turn(battle);
+        }
+        return;
     }
     else if (key == SDLK_ESCAPE) {
         battle.mode = MODE_SPELL_MENU;
@@ -495,7 +533,12 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
         draw_tile_outline(renderer, spell_target_side(hero, spell), hero.row, battle.spell_column, SDL_Color {255, 220, 100, 255});
 
         planned_sp = spell.sp_cost;
-        draw_hint(renderer, spell.name + ":  Left/Right: aim   Esc: back");
+        if (spell.speed == SPEED_INSTANT) {
+            draw_hint(renderer, spell.name + ":  Left/Right: aim   Enter: cast   Esc: back");
+        }
+        else {
+            draw_hint(renderer, spell.name + ":  Left/Right: aim   Esc: back");
+        }
     }
     else if (battle.mode == MODE_SPELL_MENU) {
         const Unit &hero = battle.units[0];
