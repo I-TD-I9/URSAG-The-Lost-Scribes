@@ -26,6 +26,7 @@ Working:
 - Instant and wind-up spells
 - Enemies that attack on their turn
 - Victory and defeat
+- A performance overlay (F3) that tracks frame, update and render times
 
 Next:
 - Items
@@ -41,6 +42,13 @@ Next:
 | Esc          | Back / cancel |
 | Arrow keys   | Plan a move, or aim an attack |
 | Left / Right | Slide a spell along your row |
+| F3           | Show or hide the performance overlay |
+
+## Performance Overlay
+
+Press F3 to show frame timings in the top-right corner. The overlay averages FPS, frame time, update time and render time over the last 96 frames, and shows the slowest frame.
+
+![The performance overlay: frame stats above a graph of recent frame times](docs/perf-overlay.png)
 
 ## Building
 
@@ -66,6 +74,7 @@ This builds `main.exe` and copies `SDL3.dll` from the SDL folder next to it, so 
 | `src/unit.*`    | Units, spawning, and HP bars |
 | `src/spell.*`   | Spell data and shapes |
 | `src/hud.*`     | Menus, stats, hints and banners |
+| `src/perf.*`    | Frame timing and the performance overlay |
 
 ## License
 
