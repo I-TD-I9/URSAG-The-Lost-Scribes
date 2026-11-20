@@ -2,6 +2,7 @@
 #include <SDL3/SDL_main.h>
 #include "board.h"
 #include "battle.h"
+#include "perf.h"
 
 int main(int argc, char* argv[]) {
 
@@ -35,6 +36,9 @@ int main(int argc, char* argv[]) {
 
     // Start a new battle
     Battle battle = start_battle();
+
+    // Frame timing for performance overlay (F3)
+    PerfStats perf;
     
     // Work out how much time has passed
     Uint64 previous_frame_ns = SDL_GetTicksNS();
@@ -56,7 +60,12 @@ int main(int argc, char* argv[]) {
                 done = true;
             }
             else if (event.type == SDL_EVENT_KEY_DOWN) {
-                handle_key(battle, event.key.key);
+                if (event.key.key == SDLK_F3) {
+                    perf.visible = !perf.visible;
+                }
+                else {
+                    handle_key(battle, event.key.key);
+                }
             }
         }
 
@@ -68,7 +77,11 @@ int main(int argc, char* argv[]) {
         
         // ------------------ GAME UPDATE ------------------
 
+        Uint64 update_start_ns = SDL_GetTicksNS();
+
         update_battle(battle, delta_seconds);
+
+        Uint64 update_end_ns = SDL_GetTicksNS();
 
         // ------------------ GAME RENDERING ------------------
 
@@ -77,7 +90,13 @@ int main(int argc, char* argv[]) {
 
         draw_battle(renderer, battle);
 
+        if (perf.visible) {
+            draw_perf_overlay(renderer, perf);
+        }
+
         SDL_RenderPresent(renderer);
+
+        Uint64 render_end_ns = SDL_GetTicksNS();
 
         // Calculate how long the frame took
         Uint64 frame_duration_ns = SDL_GetTicksNS() - frame_start_ns;
@@ -88,6 +107,13 @@ int main(int argc, char* argv[]) {
 
             SDL_DelayNS(delay_ns);
         }
+
+        // Record how long each part of this frame took
+        FrameTiming timing;
+        timing.update_ms = ns_to_ms(update_end_ns - update_start_ns);
+        timing.render_ms = ns_to_ms(render_end_ns - update_end_ns);
+        timing.frame_ms = ns_to_ms(SDL_GetTicksNS() - frame_start_ns);
+        record_frame(perf, timing);
     }
     
     // Clean up graphics context resources
