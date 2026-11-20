@@ -29,6 +29,17 @@ enum BattleMode {
     MODE_DEFEAT         // the hero is defeated
 };
 
+
+// Wind-up spells (land at the start of caster's next turn()
+struct PendingSpell {
+    int caster {0};             // index in units of the unit that cast it
+    Side side {SIDE_ENEMY};     // grid it lands on
+    std::vector<Tile> tiles;    // danger tiles, fixed when it was cast
+    int power {0};
+    bool heals {false};
+};
+
+
 // Everything about the battle
 struct Battle {
     std::vector<Unit> units;                // every unit
@@ -46,7 +57,10 @@ struct Battle {
     int round {1};                          // goes up each time hero turn starts
     float enemy_turn_timer {0.0f};          // seconds until the next enemy acts
     int next_enemy {1};                     // index in units of the enemy that acts next
+
+    std::vector<PendingSpell> pending_spells;   // wind-up spells waiting to land
 };
+
 
 Battle start_battle ();
 void handle_key (Battle &battle, SDL_Keycode key);

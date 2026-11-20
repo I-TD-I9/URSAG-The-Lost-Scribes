@@ -79,6 +79,37 @@ void heal_tile (Battle &battle, Side side, int row, int column, int amount) {
 }
 
 
+// Hits/heals every tile in a list
+void affect_tiles (Battle &battle, Side side, const std::vector<Tile> &tiles, int power, bool heals) {
+    for (const Tile &tile : tiles) {
+        if (heals) {
+            heal_tile(battle, side, tile.row, tile.column, power);
+        }
+        else {
+            damage_tile(battle, side, tile.row, tile.column, power);
+        }
+    }
+}
+
+// Lands every wind-up spell cast (spells whose caster is defeated fizzles) 
+void land_spells (Battle &battle, Side caster_side) {
+    std::vector<PendingSpell> still_waiting;
+
+    for (const PendingSpell &pending : battle.pending_spells) {
+        const Unit &caster = battle.units[pending.caster];
+
+        if (caster.side != caster_side) {
+            still_waiting.push_back(pending);
+        }
+        else if (is_alive(caster)) {
+            affect_tiles(battle, pending.side, pending.tiles, pending.power, pending.heals);
+        }
+    }
+
+    battle.pending_spells = still_waiting;
+}
+
+
 // Checks whether every enemy has been defeated
 bool all_enemies_defeated (const Battle &battle) {
     for (const Unit &unit : battle.units) {
@@ -124,6 +155,9 @@ void enemy_act (Battle &battle, Unit &enemy) {
 void end_hero_turn (Battle &battle) {
     battle.mode = MODE_ENEMY_TURN;
 
+    // Enemy wind-up spells from last turn land first
+    land_spells(battle, SIDE_ENEMY);
+
     // Enemy's AP refills at the start of their turn
     for (Unit &unit : battle.units) {
         if (unit.side == SIDE_ENEMY) {
@@ -139,6 +173,9 @@ void end_hero_turn (Battle &battle) {
 
 // Starts hero next turn: a new round, full AP, and the menu back on attack
 void start_hero_turn (Battle &battle) {
+    // Hero's wind-up spell from last turn lands first
+    land_spells(battle, SIDE_HERO);
+
     Unit &hero = battle.units[0];
     hero.ap = hero.max_ap;
 
@@ -317,20 +354,28 @@ Side spell_target_side (const Unit &caster, const Spell &spell) {
 }
 
 
-// Casts spell right away then hits (or heals) every tile it covers
+// Casts spell right away that hits/heals every tile it covers
 void cast_spell_now (Battle &battle, Unit &caster, const Spell &spell, int anchor_column) {
     caster.sp = caster.sp - spell.sp_cost;
 
     Side side = spell_target_side(caster, spell);
+    affect_tiles(battle, side, spell_tiles(spell, caster.row, anchor_column), spell.power, spell.heals);
+}
 
-    for (const Tile &tile : spell_tiles(spell, caster.row, anchor_column)) {
-        if (spell.heals) {
-            heal_tile(battle, side, tile.row, tile.column, spell.power);
-        }
-        else {
-            damage_tile(battle, side, tile.row, tile.column, spell.power);
-        }
-    }
+
+// Wind-up spells pays its SP and marks its danger tiles
+void start_wind_up (Battle &battle, int caster_index, const Spell &spell, int anchor_column) {
+    Unit &caster = battle.units[caster_index];
+    caster.sp = caster.sp - spell.sp_cost;
+
+    PendingSpell pending;
+    pending.caster = caster_index;
+    pending.side = spell_target_side(caster, spell);
+    pending.tiles = spell_tiles(spell, caster.row, anchor_column);
+    pending.power = spell.power;
+    pending.heals = spell.heals;
+
+    battle.pending_spells.push_back(pending);
 }
 
 
@@ -397,11 +442,14 @@ void handle_spell_aim_key (Battle &battle, SDL_Keycode key) {
             column = column + 1;
         }
     }
-    else if (key == SDLK_RETURN) {
+        else if (key == SDLK_RETURN) {
         if (spell.speed == SPEED_INSTANT) {
             cast_spell_now(battle, battle.units[0], spell, battle.spell_column);
-            end_hero_turn(battle);
         }
+        else {
+            start_wind_up(battle, 0, spell, battle.spell_column);
+        }
+        end_hero_turn(battle);
         return;
     }
     else if (key == SDLK_ESCAPE) {
@@ -480,6 +528,21 @@ void update_battle (Battle &battle, float delta_seconds) {
 void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
     draw_board(renderer);
 
+    // Danger tiles for wind-up spells
+    for (const PendingSpell &pending : battle.pending_spells) {
+        SDL_Color color {240, 70, 60, 90};
+        if (battle.units[pending.caster].side == SIDE_HERO) {
+            color = SDL_Color {80, 160, 255, 80};
+        }
+        if (pending.heals) {
+            color = SDL_Color {90, 220, 120, 90};
+        }
+
+        for (const Tile &tile : pending.tiles) {
+            draw_tile_tint(renderer, pending.side, tile.row, tile.column, color);
+        }
+    }
+
     // Tint tiles a spell covers
     if (battle.mode == MODE_SPELL_AIM) {
         const Unit &hero = battle.units[0];
@@ -533,12 +596,7 @@ void draw_battle (SDL_Renderer *renderer, const Battle &battle) {
         draw_tile_outline(renderer, spell_target_side(hero, spell), hero.row, battle.spell_column, SDL_Color {255, 220, 100, 255});
 
         planned_sp = spell.sp_cost;
-        if (spell.speed == SPEED_INSTANT) {
-            draw_hint(renderer, spell.name + ":  Left/Right: aim   Enter: cast   Esc: back");
-        }
-        else {
-            draw_hint(renderer, spell.name + ":  Left/Right: aim   Esc: back");
-        }
+        draw_hint(renderer, spell.name + ":  Left/Right: aim   Enter: cast   Esc: back");
     }
     else if (battle.mode == MODE_SPELL_MENU) {
         const Unit &hero = battle.units[0];
